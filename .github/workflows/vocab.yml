@@ -1,0 +1,50 @@
+name: Daily Spanish Vocab
+
+on:
+  # Stündlich starten (UTC). Das Skript selbst sendet nur um 9/15/21 Europe/Berlin.
+  schedule:
+    - cron: "0 * * * *"
+  # Manuell auslösbar im Actions-Tab ("Run workflow")
+  workflow_dispatch:
+
+permissions:
+  contents: write   # erlaubt Commit von state.json (Verlaufsdatei)
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Falls du später externe Libraries brauchst, hier requirements installieren.
+      # - name: Install deps (optional)
+      #   run: pip install -r requirements.txt
+
+      - name: Run sender
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TZ: Europe/Berlin
+          TARGET_HOURS: "9,15,21"   # deine drei Sendezeiten
+          # FORCE_SEND: "1"         # nur für manuelle Tests
+        run: |
+          python vocab_sender.py
+
+      - name: Commit state (if changed)
+        run: |
+          if git status --porcelain | grep -q "state.json"; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add state.json
+            git commit -m "Update state.json [skip ci]"
+            git push
+          else
+            echo "No state changes to commit."
