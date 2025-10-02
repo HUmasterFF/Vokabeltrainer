@@ -1,14 +1,14 @@
 name: Daily Spanish Vocab
 
 on:
-  # Stündlich starten (UTC). Das Skript selbst sendet nur um 9/15/21 Europe/Berlin.
+  # Stündlich (UTC). Dein Skript sendet nur um 9/15/21 Europe/Berlin.
   schedule:
     - cron: "0 * * * *"
   # Manuell auslösbar im Actions-Tab ("Run workflow")
   workflow_dispatch:
 
 permissions:
-  contents: write   # erlaubt Commit von state.json (Verlaufsdatei)
+  contents: write   # erlaubt Commit von state.json
 
 jobs:
   run:
@@ -24,9 +24,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Falls du später externe Libraries brauchst, hier requirements installieren.
-      # - name: Install deps (optional)
-      #   run: pip install -r requirements.txt
+      # Optional: kurz prüfen, ob Dateien da sind
+      - name: Debug files (optional)
+        run: |
+          pwd
+          ls -la
 
       - name: Run sender
         env:
@@ -43,8 +45,10 @@ jobs:
           if git status --porcelain | grep -q "state.json"; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config --global --add safe.directory "$(pwd)"
             git add state.json
             git commit -m "Update state.json [skip ci]"
             git push
           else
             echo "No state changes to commit."
+          fi
